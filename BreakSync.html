@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08101d">
+<title>BreakSync</title>
+<style>
+:root{--bg:#070b14;--card:#11192a;--line:#26334d;--text:#f7f9ff;--muted:#91a0ba;--a:#5ee7bd;--b:#6c8cff;--red:#ff7373}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 50% 0,#18294a 0,#070b14 42%);color:var(--text)}body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.app{width:min(620px,100%);margin:auto;padding:18px 14px 44px}.head{display:flex;align-items:center;justify-content:space-between;padding:5px 3px 16px}.brand{font-size:22px;font-weight:900}.pill{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:7px 10px;background:#0d1422}.pill.on{color:#c8ffe9;background:#0d2a22;border-color:#256c57}.pill.err{color:#ffd1d1;background:#2b1117;border-color:#6f2934}
+.card{margin-bottom:13px;padding:19px;border-radius:23px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(18,28,47,.98),rgba(11,17,29,.98));box-shadow:0 18px 50px rgba(0,0,0,.27)}.label{font-size:13px;color:var(--muted)}.state{text-align:center;font-size:14px;color:var(--muted);margin-top:8px}.timer{text-align:center;font-size:55px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-2px;margin:20px 0}.primary{width:100%;border:0;border-radius:17px;padding:17px;font-size:17px;font-weight:900;color:#03130e;background:linear-gradient(135deg,var(--a),#37d7a4);box-shadow:0 10px 30px rgba(94,231,189,.14)}.primary.stop{color:#260607;background:linear-gradient(135deg,#ff9a9a,var(--red))}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.metric{text-align:center;padding:12px 7px;border-radius:15px;background:#0a1120;border:1px solid #1d2941}.metric b{display:block;font-size:19px}.metric span{font-size:11px;color:var(--muted)}.bar{height:8px;border-radius:999px;background:#080d18;overflow:hidden;margin-top:13px}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--b),var(--a))}
+.title{font-size:15px;font-weight:900;margin-bottom:11px}.help{font-size:13px;line-height:1.55;color:var(--muted)}.row{display:flex;gap:8px;align-items:center}.input{min-width:0;flex:1;padding:13px;border:1px solid var(--line);border-radius:14px;background:#080e1a;color:var(--text);font:inherit}.btn{padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:#111b2e;color:var(--text);font:inherit;font-weight:750}.btn.bad{color:#ffc8c8}.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-all;padding:11px;margin:10px 0;border:1px dashed #394965;border-radius:12px;background:#070c16;color:#dce6ff}.note{margin-top:11px;font-size:11px;line-height:1.45;color:#71809b}
+.sessions{display:flex;flex-direction:column;gap:8px}.session{display:flex;justify-content:space-between;gap:10px;padding:13px 14px;border-radius:15px;background:#090f1c;border:1px solid #19253b}.times{font-weight:800}.dur{color:var(--muted);font-variant-numeric:tabular-nums}.empty{font-size:14px;color:var(--muted);padding:6px 0}.settings{display:flex;justify-content:space-between;align-items:center;gap:12px}.settings input{width:86px;text-align:right}.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,18px);opacity:0;background:#f8fafc;color:#090e17;border-radius:999px;padding:10px 15px;font-size:13px;font-weight:800;transition:.2s;z-index:99;pointer-events:none;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:420px){.timer{font-size:47px}.card{padding:17px;border-radius:20px}.metric b{font-size:17px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="head"><div class="brand">BreakSync</div><div id="status" class="pill">ローカル</div></div>
+  <section class="card">
+    <div class="label">現在の状態</div><div id="state" class="state">勤務中</div><div id="timer" class="timer">00:00:00</div>
+    <button id="main" class="primary">休憩開始</button>
+    <div class="metrics"><div class="metric"><b id="total">0分</b><span>今日の休憩</span></div><div class="metric"><b id="remain">60分</b><span>残り</span></div><div class="metric"><b id="count">0回</b><span>休憩回数</span></div></div><div class="bar"><i id="bar"></i></div>
+  </section>
+  <section class="card">
+    <div class="title">iPhone ⇄ Android 同期</div>
+    <div id="roomOff">
+      <div class="help">最初の端末で「同期ルームを作成」。出たコードを、もう片方の端末に入力します。</div>
+      <div class="row" style="margin-top:12px"><button id="create" class="btn" style="flex:1">同期ルームを作成</button></div>
+      <div class="row" style="margin-top:8px"><input id="joinCode" class="input" placeholder="同期コード"><button id="join" class="btn">参加</button></div>
+    </div>
+    <div id="roomOn" hidden>
+      <div class="help">同期中です。もう片方の端末にこのコードを入力してください。</div><div id="roomCode" class="code"></div>
+      <div class="row"><button id="copy" class="btn" style="flex:1">コードをコピー</button><button id="leave" class="btn bad">同期解除</button></div>
+    </div>
+    <div class="note">同期先は外部の無料JSONストレージです。同期コードを知っている人はデータへアクセスできる可能性があるため、個人情報や機密情報は入力しないでください。</div>
+  </section>
+  <section class="card"><div class="title">今日の履歴</div><div id="sessions" class="sessions"></div></section>
+  <section class="card"><div class="title">設定</div><div class="settings"><div><b>1日の休憩上限</b><div class="help">残り時間の計算に使用</div></div><div class="row"><input id="limit" class="input" type="number" min="1" max="300"><span>分</span></div></div><div class="row" style="margin-top:14px"><button id="reset" class="btn bad" style="flex:1">今日の履歴を削除</button></div></section>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+(()=>{
+'use strict';
+const API='https://superjsonblob.com/api/jsonBlob';
+const KDATA='breaksync_data_v3',KROOM='breaksync_room_v3',KDEV='breaksync_device_v3';
+const uuid=()=>self.crypto?.randomUUID?.()||('d-'+Date.now()+'-'+Math.random().toString(36).slice(2));
+const device=localStorage.getItem(KDEV)||uuid();localStorage.setItem(KDEV,device);
+let room=localStorage.getItem(KROOM)||'',busy=false,lastWrite=0;
+const blank=()=>({schema:3,updatedAt:Date.now(),updatedBy:device,limitMinutes:60,active:null,sessions:[]});
+let data=(()=>{try{const x=JSON.parse(localStorage.getItem(KDATA));return x&&x.schema===3?x:blank()}catch{return blank()}})();
+const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0');
+const save=()=>localStorage.setItem(KDATA,JSON.stringify(data));
+const touch=()=>{data.updatedAt=Date.now();data.updatedBy=device;save()};
+const day=t=>{const d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const today=()=>day(Date.now());
+const fmt=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())};
+const hms=ms=>{let s=Math.max(0,Math.floor(ms/1000));return pad(Math.floor(s/3600))+':'+pad(Math.floor(s%3600/60))+':'+pad(s%60)};
+const minText=ms=>Math.round(Math.max(0,ms)/60000)+'分';
+const endedToday=()=>data.sessions.filter(s=>day(s.start)===today());
+const totalMs=()=>endedToday().reduce((a,s)=>a+Math.max(0,s.end-s.start),0)+(data.active&&day(data.active.start)===today()?Date.now()-data.active.start:0);
+let toastT;function toast(s){const e=$('toast');e.textContent=s;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2100)}
+function status(kind){const e=$('status');e.className='pill'+(kind==='on'?' on':kind==='err'?' err':'');e.textContent=!room?'ローカル':kind==='err'?'同期エラー':kind==='on'?'同期中':'接続中'}
+function roomUI(){ $('roomOff').hidden=!!room;$('roomOn').hidden=!room;$('roomCode').textContent=room;status(room?'wait':'off') }
+function render(){
+ const a=data.active,tm=totalMs(),lim=(Number(data.limitMinutes)||60)*60000,rem=Math.max(0,lim-tm);
+ $('state').textContent=a?'休憩中':'勤務中';$('timer').textContent=a?hms(Date.now()-a.start):'00:00:00';
+ $('main').textContent=a?'休憩終了':'休憩開始';$('main').classList.toggle('stop',!!a);
+ $('total').textContent=minText(tm);$('remain').textContent=minText(rem);$('count').textContent=(endedToday().length+(a&&day(a.start)===today()?1:0))+'回';$('bar').style.width=Math.min(100,tm/lim*100)+'%';$('limit').value=Number(data.limitMinutes)||60;
+ const arr=endedToday().slice().sort((x,y)=>y.start-x.start);$('sessions').innerHTML=arr.length?arr.map(s=>'<div class="session"><div class="times">'+fmt(s.start)+'〜'+fmt(s.end)+'</div><div class="dur">'+minText(s.end-s.start)+'</div></div>').join(''):'<div class="empty">まだ休憩履歴はありません。</div>';
+}
+async function pull(){if(!room||busy)return;try{const r=await fetch(API+'/'+encodeURIComponent(room),{cache:'no-store'});if(!r.ok)throw 0;const remote=await r.json();if(remote&&remote.schema===3&&remote.updatedAt>data.updatedAt){data=remote;save();render()}status('on')}catch{status('err')}}
+async function push(){if(!room)return;busy=true;lastWrite=Date.now();try{const r=await fetch(API+'/'+encodeURIComponent(room),{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(data)});if(!r.ok)throw 0;status('on')}catch{status('err');toast('同期できませんでした。端末内には保存済みです')}finally{busy=false}}
+async function mutate(fn){if(room)await pull();fn();touch();render();if(room)await push()}
+$('main').onclick=()=>mutate(()=>{if(data.active){data.sessions.push({id:data.active.id,start:data.active.start,end:Date.now()});data.active=null}else data.active={id:uuid(),start:Date.now()}});
+$('create').onclick=async()=>{try{status('wait');const r=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});if(!r.ok)throw 0;const j=await r.json();if(!j.id)throw 0;room=j.id;localStorage.setItem(KROOM,room);roomUI();status('on');toast('同期ルームを作成しました')}catch{status('off');toast('同期ルームを作成できませんでした')}};
+$('join').onclick=async()=>{const c=$('joinCode').value.trim();if(!c)return toast('同期コードを入力してください');try{status('wait');const r=await fetch(API+'/'+encodeURIComponent(c),{cache:'no-store'});if(!r.ok)throw 0;const remote=await r.json();if(!remote||remote.schema!==3)throw 0;room=c;data=remote;save();localStorage.setItem(KROOM,room);roomUI();render();status('on');toast('同期しました')}catch{status('off');toast('その同期コードは使えません')}};
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(room);toast('コードをコピーしました')}catch{toast('コード部分を長押ししてコピーしてください')}};
+$('leave').onclick=()=>{room='';localStorage.removeItem(KROOM);roomUI();toast('同期を解除しました')};
+$('limit').onchange=()=>mutate(()=>{data.limitMinutes=Math.min(300,Math.max(1,Number($('limit').value)||60))});
+$('reset').onclick=()=>{if(confirm('今日の休憩履歴を削除しますか？'))mutate(()=>{const k=today();data.sessions=data.sessions.filter(s=>day(s.start)!==k);if(data.active&&day(data.active.start)===k)data.active=null})};
+roomUI();render();setInterval(render,1000);setInterval(()=>{if(room&&Date.now()-lastWrite>1300)pull()},2500);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&room)pull()});window.addEventListener('online',()=>room&&pull());room&&pull();
+})();
+</script>
+</body>
+</html>
